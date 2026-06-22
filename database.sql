@@ -1,23 +1,29 @@
 -- =============================================
--- ApiStore — Supabase Database Schema
--- Jalankan ini di Supabase SQL Editor
+-- ApiStore — Complete Database Setup
+-- Jalankan seluruh file ini di Supabase SQL Editor
 -- =============================================
 
+
+
+-- ═══════════════════════════════════════════
+-- SCHEMA (v1) — Tabel utama
+-- ═══════════════════════════════════════════
+
 -- Enable UUID extension
-create extension if not exists "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ─── USERS ───────────────────────────────────
-create table public.users (
+CREATE TABLE public.users (
   id          uuid primary key default uuid_generate_v4(),
   name        text not null,
   email       text not null unique,
   password    text not null,
-  role        text not null default 'user' check (role in ('user', 'admin')),
+  role        text not null default 'user' check (role in ('user', 'premium', 'super_premium', 'admin')),
   created_at  timestamptz not null default now()
 );
 
 -- ─── PRODUCTS ────────────────────────────────
-create table public.products (
+CREATE TABLE public.products (
   id          uuid primary key default uuid_generate_v4(),
   name        text not null,
   description text not null,
@@ -28,7 +34,7 @@ create table public.products (
 );
 
 -- ─── PACKAGES ────────────────────────────────
-create table public.packages (
+CREATE TABLE public.packages (
   id            uuid primary key default uuid_generate_v4(),
   product_id    uuid not null references public.products(id) on delete cascade,
   name          text not null,
@@ -39,7 +45,7 @@ create table public.packages (
 );
 
 -- ─── ORDERS ──────────────────────────────────
-create table public.orders (
+CREATE TABLE public.orders (
   id          uuid primary key default uuid_generate_v4(),
   user_id     uuid not null references public.users(id) on delete cascade,
   package_id  uuid not null references public.packages(id),
@@ -51,7 +57,7 @@ create table public.orders (
 );
 
 -- ─── API KEYS ─────────────────────────────────
-create table public.api_keys (
+CREATE TABLE public.api_keys (
   id          uuid primary key default uuid_generate_v4(),
   user_id     uuid not null references public.users(id) on delete cascade,
   product_id  uuid references public.products(id) on delete set null,
@@ -67,7 +73,7 @@ create table public.api_keys (
 );
 
 -- ─── USAGE LOGS ──────────────────────────────
-create table public.usage_logs (
+CREATE TABLE public.usage_logs (
   id          uuid primary key default uuid_generate_v4(),
   api_key_id  uuid not null references public.api_keys(id) on delete cascade,
   endpoint    text,
@@ -76,24 +82,55 @@ create table public.usage_logs (
   created_at  timestamptz not null default now()
 );
 
--- ─── FUNCTION: increment quota_used ──────────
-create or replace function increment_api_key_usage(key_id uuid)
-returns void as $$
-  update public.api_keys
-  set quota_used = quota_used + 1
-  where id = key_id;
-$$ language sql;
 
--- ─── INDEXES ──────────────────────────────────
-create index on public.orders (user_id);
-create index on public.orders (status);
-create index on public.api_keys (user_id);
-create index on public.api_keys (key);
-create index on public.usage_logs (api_key_id);
 
--- ─── ADMIN USER (ganti email & password hash) ─
--- Password default: Admin@12345
--- Hash ini hanya contoh, generate ulang dengan bcrypt
+-- ═══════════════════════════════════════════
+-- MIGRATION v3 — Tabel plan_orders (upgrade plan)
+-- ═══════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.plan_orders (
+  id            uuid primary key default uuid_generate_v4(),
+  user_id       uuid not null references public.users(id) on delete cascade,
+  plan          text not null check (plan IN ('premium', 'super_premium')),
+  status        text not null default 'pending' check (status IN ('pending', 'approved', 'rejected')),
+  price         integer not null,   -- harga dalam rupiah
+  note          text,               -- catatan dari user (opsional)
+  processed_by  uuid references public.users(id),
+  processed_at  timestamptz,
+  created_at    timestamptz not null default now()
+);
+
+
+
+-- ═══════════════════════════════════════════
+-- FUNCTION & INDEXES
+-- ═══════════════════════════════════════════
+
+-- Function: increment quota_used saat API digunakan
+CREATE OR REPLACE FUNCTION increment_api_key_usage(key_id uuid)
+RETURNS void AS $$
+  UPDATE public.api_keys
+  SET quota_used = quota_used + 1
+  WHERE id = key_id;
+$$ LANGUAGE sql;
+
+-- Indexes untuk performa query
+CREATE INDEX ON public.orders (user_id);
+CREATE INDEX ON public.orders (status);
+CREATE INDEX ON public.api_keys (user_id);
+CREATE INDEX ON public.api_keys (key);
+CREATE INDEX ON public.usage_logs (api_key_id);
+CREATE INDEX IF NOT EXISTS plan_orders_user_id_idx ON public.plan_orders(user_id);
+CREATE INDEX IF NOT EXISTS plan_orders_status_idx  ON public.plan_orders(status);
+
+
+
+-- ═══════════════════════════════════════════
+-- ADMIN USER (opsional)
+-- ═══════════════════════════════════════════
+-- Uncomment dan isi hash bcrypt kamu, atau buat via register lalu update role manual:
+-- UPDATE public.users SET role = 'admin' WHERE email = 'email-kamu@example.com';
+
 -- insert into public.users (name, email, password, role)
 -- values (
 --   'Admin',
