@@ -157,6 +157,29 @@
   .section { @apply py-24 px-4 md:px-6; }
   .section-title { @apply text-3xl md:text-4xl font-bold text-text-primary tracking-tight; }
   .section-subtitle { @apply text-base text-text-muted mt-3 max-w-xl leading-relaxed; }
+
+  /* Section header bar (dipakai di docs, pricing, changelog, dll) */
+  .section-header {
+    @apply flex items-center justify-between border-b border-white/[0.06] pb-4 mb-12;
+  }
+
+  /* Section tag pill */
+  .section-tag {
+    @apply inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-widest uppercase border border-primary/30 text-primary bg-primary/5;
+  }
+  .section-tag-green {
+    @apply inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-widest uppercase border border-secondary/30 text-secondary bg-secondary/5;
+  }
+
+  /* Label meta (teks kecil di sebelah section tag) */
+  .label-meta {
+    @apply text-xs font-bold tracking-widest uppercase text-text-muted;
+  }
+
+  /* Watermark / background decorative text */
+  .watermark {
+    @apply absolute select-none pointer-events-none font-black uppercase tracking-tighter opacity-[0.03] text-white;
+  }
 }
 
 /* ─────────────────────────────────────────

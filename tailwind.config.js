@@ -42,6 +42,9 @@ module.exports = {
         xl:  "0.75rem",
         "2xl": "1rem",
       },
+      fontSize: {
+        "2xs": ["0.625rem", { lineHeight: "1rem" }],
+      },
       boxShadow: {
         glow:       "0 0 20px rgba(154,147,211,0.15)",
         "glow-sm":  "0 0 12px rgba(154,147,211,0.1)",
