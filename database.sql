@@ -103,6 +103,30 @@ CREATE TABLE IF NOT EXISTS public.plan_orders (
 
 
 -- ═══════════════════════════════════════════
+-- MIGRATION v4 — Tabel payments (QRIS payment)
+-- ═══════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.payments (
+  id          uuid primary key default uuid_generate_v4(),
+  order_id    uuid references public.orders(id) on delete cascade,
+  user_id     uuid not null references public.users(id) on delete cascade,
+  qris_id     text,
+  qrcode_url  text,
+  amount      integer not null,
+  status      text not null default 'pending' check (status in ('pending', 'paid', 'expired', 'failed')),
+  expired_at  timestamptz,
+  paid_at     timestamptz,
+  raw_response jsonb,
+  created_at  timestamptz not null default now()
+);
+
+CREATE INDEX IF NOT EXISTS payments_order_id_idx ON public.payments(order_id);
+CREATE INDEX IF NOT EXISTS payments_user_id_idx ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS payments_status_idx ON public.payments(status);
+
+
+
+-- ═══════════════════════════════════════════
 -- FUNCTION & INDEXES
 -- ═══════════════════════════════════════════
 
@@ -122,6 +146,9 @@ CREATE INDEX ON public.api_keys (key);
 CREATE INDEX ON public.usage_logs (api_key_id);
 CREATE INDEX IF NOT EXISTS plan_orders_user_id_idx ON public.plan_orders(user_id);
 CREATE INDEX IF NOT EXISTS plan_orders_status_idx  ON public.plan_orders(status);
+CREATE INDEX IF NOT EXISTS payments_order_id_idx ON public.payments(order_id);
+CREATE INDEX IF NOT EXISTS payments_user_id_idx ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS payments_status_idx ON public.payments(status);
 
 
 
